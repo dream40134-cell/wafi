@@ -33,11 +33,27 @@ unit-test line coverage. Excluding it keeps the 80% gate meaningful for the
 business-logic layers (`domain`, `service`, `adapters`) instead of being
 inflated or deflated by boilerplate.
 
-## 5. Redis added as the compose supporting service, gated on real health
-**Decision:** `docker-compose.yml` includes `redis` with a healthcheck, and
-`wafi` uses `depends_on: condition: service_healthy`.
-**Rationale:** The spec requires a supporting service gated on real health,
-not just container start order. Redis was chosen because it's a natural fit
-for the planned idempotency-cache extension (see README), so the
-infrastructure decision and the extension decision reinforce each other
-instead of being two unrelated additions.
+## 5. Redis as the supporting service, powering a fail-open idempotency-cache extension
+**Decision:** `docker-compose.yml` includes `redis` with a healthcheck, `wafi`
+waits on `depends_on: condition: service_healthy`, and `TriageService` is
+constructor-injected with an `IdempotencyCache` (`RedisIdempotencyCache` when
+the `REDIS_URL` env var is set — see `app.py::_build_cache` — `NullCache`
+otherwise). An identical ticket (same text + affected_users, hashed in
+`domain/policy.py::ticket_cache_key`) submitted twice within the TTL returns
+the same decision without re-classifying it. Cache reads/writes fail open
+(log + no-op) rather than raising, so a Redis outage degrades to "always
+re-classify," never to a 500.
+**Rationale:** This satisfies both the supporting-service requirement (real
+health-gating, not just start order) and the "at least one extension"
+deliverable with a single coherent piece of infrastructure, instead of two
+unrelated additions. Fail-open was chosen deliberately: a caching layer is
+an optimisation, and an optimisation that can take the core service down
+with it is a design bug, not a feature. The cache key lives in the domain
+layer (not the adapter) because "what makes two tickets the same request"
+is a business rule, not an infrastructure detail.
+Tested in `tests/unit/test_triage_service_cache.py` (service-level: a second
+identical ticket is served from cache without calling the classifier again,
+and invariants are still re-applied on a cache hit) and
+`tests/behavioral/test_idempotency_cache.py` (the Redis adapter itself,
+against `fakeredis` — no live Redis server required in CI — including the
+fail-open path when the client raises).

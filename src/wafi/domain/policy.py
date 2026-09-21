@@ -6,6 +6,8 @@ the model adapter to prove the guarantee — it just calls a function.
 """
 from __future__ import annotations
 
+import hashlib
+
 from .entities import Team, Ticket, TriageDecision, Urgency
 
 # Phrases that indicate a full service outage. Case-insensitive substring match.
@@ -46,6 +48,14 @@ def apply_invariants(ticket: Ticket, decision: TriageDecision) -> TriageDecision
             rationale=f"{decision.rationale} | escalated: full-outage phrase detected",
         )
     return decision
+
+
+def ticket_cache_key(ticket: Ticket) -> str:
+    """Deterministic idempotency key: same text + affected_users always
+    produces the same key. Kept in domain because "what makes two tickets
+    the same request" is a business rule, not an infra detail."""
+    normalized = f"{ticket.text.strip().lower()}|{ticket.affected_users}"
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
 def default_decision() -> TriageDecision:

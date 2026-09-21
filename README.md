@@ -20,6 +20,9 @@ docker compose up --build
 
 This starts `wafi` on `http://localhost:8000` alongside a `redis` supporting
 service. `wafi` waits for redis to report healthy before starting.
+Configuration is passed via `WAFI_*` environment variables in
+`docker-compose.yml` — see `.env.example` for the full list if running
+without Docker.
 
 ## Try it
 
@@ -44,8 +47,8 @@ curl http://localhost:8000/ready    # readiness
 src/wafi/
   domain/     pure business rules — no imports from any other layer
   service/    use-case orchestration, depends on domain + the classifier Protocol
-  adapters/   concrete classifier(s) + I/O, implement the Protocol via DI
-  api/        FastAPI endpoints, wires everything together at startup
+  adapters/   concrete classifier + idempotency cache, implement Protocols via DI
+  api/        FastAPI endpoints, config, logging — wires everything together at startup
 ```
 
 The layering is enforced automatically by `import-linter` (`make lint`) —
@@ -69,14 +72,42 @@ into `TriageService` at startup (`src/wafi/api/app.py`).
 Fast gate (unit + behavioural, no Docker) finishes in well under 60s:
 `make test-fast`.
 
-## Extension (in progress — see `adapters/idempotency_cache.py`)
+## Extension: idempotency cache
 
-Redis is already wired into `docker-compose.yml` as the supporting service.
-The suggested extension is a request-idempotency cache: an identical ticket
-submitted twice returns the same decision instead of being re-classified.
-The Protocol and a no-op `NullCache` are scaffolded; wiring it in, adding a
-real Redis-backed implementation, and testing it is the remaining work for
-the "at least one extension" deliverable.
+An identical ticket (same text + `affected_users`) submitted twice returns
+the same decision without being re-classified. Backed by Redis
+(`RedisIdempotencyCache`), injected into `TriageService` the same way the
+classifier is (constructor DI). Falls back to a no-op `NullCache` if
+`REDIS_URL` isn't set, and fails open (logs a warning, treats as a
+cache miss) if Redis is unreachable — a caching layer going down must never
+take ticket triage down with it.
+
+Try it (with `docker compose up`, which sets `REDIS_URL` for you):
+```bash
+curl -X POST http://localhost:8000/v1/predict -H "Content-Type: application/json" \
+  -d '{"text": "my vpn keeps dropping"}'
+# run the exact same request again -> same team/urgency, and the response's
+# "rationale" field will say "served from idempotency cache"
+```
+
+Tested in `tests/unit/test_triage_service_cache.py` (fake in-memory cache —
+proves a cache hit skips the classifier) and
+`tests/behavioral/test_idempotency_cache.py` (the real `RedisIdempotencyCache`
+against `fakeredis`, no live Redis needed to run the test suite).
+
+## Config, secrets & logging
+
+Typed settings (`src/wafi/api/config.py`, `pydantic-settings`) fail fast:
+an invalid `WAFI_LOG_LEVEL` or an unrecognized `WAFI_*` variable crashes the
+process at startup instead of being silently ignored (`extra="forbid"`).
+See `.env.example` for the full list — copy it to `.env` for local runs;
+`.env` itself is gitignored and no real secret is ever committed.
+
+Logs are structured JSON, one object per line, each correlated with the
+request's `trace_id` (also returned in the `x-trace-id` response header and
+the `/v1/predict` response body). Ticket text itself is never logged — only
+its length and the resulting `team`/`urgency` — to avoid leaking personal
+data a reporter may have included in the ticket.
 
 ## Repo docs
 

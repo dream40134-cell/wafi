@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from contextlib import asynccontextmanager
 
@@ -7,6 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from wafi.adapters.idempotency_cache import IdempotencyCache, NullCache, RedisIdempotencyCache
 from wafi.adapters.keyword_classifier import KeywordClassifier
 from wafi.api.schemas import (
     ErrorDetail,
@@ -23,9 +25,16 @@ from wafi.service.triage_service import TriageService
 _state: dict[str, object] = {"ready": False, "service": None}
 
 
+def _build_cache() -> IdempotencyCache:
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        return RedisIdempotencyCache(redis_url=redis_url)
+    return NullCache()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    service = TriageService(classifier=KeywordClassifier())
+    service = TriageService(classifier=KeywordClassifier(), cache=_build_cache())
     service.warm_up()
     _state["service"] = service
     _state["ready"] = True

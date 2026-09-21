@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.111",
     "uvicorn[standard]>=0.30",
     "pydantic>=2.7",
+    "redis>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -17,6 +18,7 @@ dev = [
     "ruff>=0.5",
     "mypy>=1.10",
     "import-linter>=2.0",
+    "fakeredis>=2.23",
 ]
 
 [build-system]
