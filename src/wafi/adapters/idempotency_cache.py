@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Protocol
+from typing import Any, Protocol
 
 from wafi.domain.entities import Team, TriageDecision, Urgency
 
@@ -49,10 +49,13 @@ class RedisIdempotencyCache:
     one must be provided.
     """
 
-    def __init__(self, redis_url: str | None = None, client: object | None = None) -> None:
+    def __init__(self, redis_url: str | None = None, client: Any | None = None) -> None:
         if client is not None:
-            self._client = client
+            self._client: Any = client
         else:
+            if redis_url is None:
+                raise ValueError("RedisIdempotencyCache requires either redis_url or client")
+
             import redis  # local import: keeps this module importable even
             # in environments that only ever use NullCache and never
             # installed redis-py's C extensions.
