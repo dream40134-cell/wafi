@@ -1,0 +1,22 @@
+[
+  {
+    "input": {"text": "my vpn keeps dropping every 10 minutes", "affected_users": 1},
+    "expected": {"team": "network", "urgency": "medium"}
+  },
+  {
+    "input": {"text": "I forgot my password and I'm locked out of everything", "affected_users": 1},
+    "expected": {"team": "accounts", "urgency": "medium"}
+  },
+  {
+    "input": {"text": "urgent: printer on 2nd floor is jammed", "affected_users": 1},
+    "expected": {"team": "hardware", "urgency": "urgent"}
+  },
+  {
+    "input": {"text": "question: how do i install the new update", "affected_users": 1},
+    "expected": {"team": "software", "urgency": "low"}
+  },
+  {
+    "input": {"text": "complete outage, the whole system is down for everyone", "affected_users": 1},
+    "expected": {"team": "general", "urgency": "urgent"}
+  }
+]

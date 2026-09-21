@@ -1,0 +1,78 @@
+[project]
+name = "wafi"
+version = "0.1.0"
+description = "IT helpdesk ticket triage service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "import-linter>=2.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=src/wafi --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["src/wafi"]
+omit = ["src/wafi/api/app.py"]  # wiring/lifecycle code, covered by integration tests instead
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[tool.importlinter]
+root_package = "wafi"
+
+[[tool.importlinter.contracts]]
+name = "Domain must stay pure"
+type = "forbidden"
+source_modules = ["wafi.domain"]
+forbidden_modules = ["wafi.service", "wafi.adapters", "wafi.api"]
+
+[[tool.importlinter.contracts]]
+name = "Service must not depend on API"
+type = "forbidden"
+source_modules = ["wafi.service"]
+forbidden_modules = ["wafi.api"]
+
+[[tool.importlinter.contracts]]
+name = "Adapters must not depend on API"
+type = "forbidden"
+source_modules = ["wafi.adapters"]
+forbidden_modules = ["wafi.api"]
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+    "wafi.api",
+    "wafi.service",
+    "wafi.adapters",
+    "wafi.domain",
+]
