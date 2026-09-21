@@ -8,7 +8,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from wafi.adapters.keyword_classifier import KeywordClassifier
-from wafi.api.schemas import ErrorDetail, ErrorResponse, PredictData, PredictRequest, PredictResponse
+from wafi.api.schemas import (
+    ErrorDetail,
+    ErrorResponse,
+    PredictData,
+    PredictRequest,
+    PredictResponse,
+)
 from wafi.domain.entities import Ticket
 from wafi.service.triage_service import TriageService
 

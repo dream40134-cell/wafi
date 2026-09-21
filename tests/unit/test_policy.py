@@ -19,7 +19,9 @@ def test_is_full_outage_false_for_normal_ticket():
 
 def test_apply_invariants_escalates_low_to_urgent_on_outage():
     ticket = Ticket(text="complete outage, nothing is working")
-    low_decision = TriageDecision(team=Team.NETWORK, urgency=Urgency.LOW, rationale="model said low")
+    low_decision = TriageDecision(
+        team=Team.NETWORK, urgency=Urgency.LOW, rationale="model said low"
+    )
 
     result = apply_invariants(ticket, low_decision)
 

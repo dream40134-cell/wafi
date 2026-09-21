@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class Team(str, Enum):
+class Team(StrEnum):
     NETWORK = "network"
     HARDWARE = "hardware"
     SOFTWARE = "software"
@@ -13,7 +13,7 @@ class Team(str, Enum):
     GENERAL = "general"
 
 
-class Urgency(str, Enum):
+class Urgency(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     URGENT = "urgent"

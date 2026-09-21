@@ -10,13 +10,15 @@ satisfies TicketClassifier — nothing else in the codebase changes.
 """
 from __future__ import annotations
 
-from wafi.adapters.classifier_protocol import ClassifierOutput, TicketClassifier
+from wafi.adapters.classifier_protocol import ClassifierOutput
 from wafi.domain.entities import Team, Ticket, Urgency
 
 _TEAM_KEYWORDS: dict[Team, tuple[str, ...]] = {
     Team.NETWORK: ("vpn", "wifi", "internet", "network", "connection", "شبكة", "انترنت"),
     Team.HARDWARE: ("laptop", "printer", "monitor", "keyboard", "device", "جهاز", "طابعة"),
-    Team.SOFTWARE: ("software", "app", "application", "install", "update", "error", "برنامج", "تطبيق"),
+    Team.SOFTWARE: (
+        "software", "app", "application", "install", "update", "error", "برنامج", "تطبيق",
+    ),
     Team.ACCOUNTS: ("password", "login", "account", "access", "locked out", "كلمة المرور", "حساب"),
 }
 
